@@ -10,6 +10,7 @@ import com.aliucord.annotations.AliucordPlugin
 import com.aliucord.api.CommandsAPI
 import com.aliucord.entities.Plugin
 import com.lytefast.flexinput.model.Attachment
+import java.util.Random
 
 @AliucordPlugin
 @Suppress("unused")
@@ -39,6 +40,10 @@ class MoreSlashCommands : Plugin() {
         CommandsAPI.CommandResult(owoify(ctx.getRequiredString("message").trim()))
     }
 
+    commands.registerCommand("zalgo", "Converts text to zalgo format", listOf(CommandsAPI.requiredMessageOption)) { ctx ->
+        CommandsAPI.CommandResult(zalgoify(ctx.getRequiredString("message").trim()))
+    }
+
     val displayName = Attachment::class.java.getDeclaredField("displayName").apply { isAccessible = true }
     commands.registerCommand("spoilerfiles", "Marks attachments as spoilers", listOf(CommandsAPI.messageOption)) { ctx ->
       for (a in ctx.attachments) displayName[a] = "SPOILER_" + a.displayName
@@ -57,4 +62,50 @@ class MoreSlashCommands : Plugin() {
       .replace("r", "w").replace("R", "W")
       .replace("o", "u").replace("O", "U")
   }
+
+  private val random = Random()
+  
+  private fun zalgoify(text: String): String {
+    val result = StringBuilder()
+    
+    for (char in text) {
+      result.append(char)
+      
+      // Add random number of combining characters above
+      val numAbove = random.nextInt(8) + 1
+      for (i in 0 until numAbove) {
+        result.append(COMBINING_CHARS_ABOVE[random.nextInt(COMBINING_CHARS_ABOVE.size)])
+      }
+      
+      // Add random number of combining characters middle
+      val numMiddle = random.nextInt(3)
+      for (i in 0 until numMiddle) {
+        result.append(COMBINING_CHARS_MIDDLE[random.nextInt(COMBINING_CHARS_MIDDLE.size)])
+      }
+      
+      // Add random number of combining characters below
+      val numBelow = random.nextInt(8) + 1
+      for (i in 0 until numBelow) {
+        result.append(COMBINING_CHARS_BELOW[random.nextInt(COMBINING_CHARS_BELOW.size)])
+      }
+    }
+    
+    return result.toString()
+  }
+  
+  // Unicode combining characters for zalgo text
+  private val COMBINING_CHARS_ABOVE = arrayOf(
+    '\u0300', '\u0301', '\u0302', '\u0303', '\u0304', '\u0305', '\u0306', '\u0307',
+    '\u0308', '\u0309', '\u030A', '\u030B', '\u030C', '\u030D', '\u030E', '\u030F'
+  )
+  
+  private val COMBINING_CHARS_MIDDLE = arrayOf(
+    '\u0310', '\u0311', '\u0312', '\u0313', '\u0314', '\u0315', '\u0316', '\u0317',
+    '\u0318', '\u0319', '\u031A', '\u031B', '\u031C', '\u031D', '\u031E', '\u031F'
+  )
+  
+  private val COMBINING_CHARS_BELOW = arrayOf(
+    '\u0320', '\u0321', '\u0322', '\u0323', '\u0324', '\u0325', '\u0326', '\u0327',
+    '\u0328', '\u0329', '\u032A', '\u032B', '\u032C', '\u032D', '\u032E', '\u032F'
+  )
 }
