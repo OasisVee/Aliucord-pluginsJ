@@ -40,8 +40,8 @@ class MoreSlashCommands : Plugin() {
         CommandsAPI.CommandResult(owoify(ctx.getRequiredString("message").trim()))
     }
 
-    // Create intensity option using the correct API
-    val intensityOption = CommandsAPI.integerOption("intensity", "How intense the zalgo effect should be (1-5, default: 3)", false)
+    // Fix: Use option method with OptionType.INTEGER instead of integerOption
+    val intensityOption = CommandsAPI.option("intensity", "How intense the zalgo effect should be (1-5, default: 3)", CommandsAPI.OptionType.INTEGER, false)
 
     commands.registerCommand(
         "zalgo", 
