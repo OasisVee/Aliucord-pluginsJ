@@ -44,22 +44,38 @@ class MoreSlashCommands : Plugin() {
             CommandResult(owoify(ctx.getRequiredString("message").trim()))
         }
 
-        val args = listOf(
+        val zalgoArgs = listOf(
             ApplicationCommandOption(
                 ApplicationCommandType.STRING,
                 "message",
                 "The message to convert to zalgo format",
-                required = true
+                null,
+                true,
+                false,
+                null,
+                null,
+                null,
+                false,
+                null,
+                null
             ),
             ApplicationCommandOption(
                 ApplicationCommandType.INTEGER,
                 "intensity",
                 "The intensity of the zalgo effect (default is 5)",
-                required = false
+                null,
+                false,
+                false,
+                null,
+                null,
+                null,
+                false,
+                null,
+                null
             )
         )
 
-        commands.registerCommand("zalgo", "Converts text to zalgo format", args) { ctx ->
+        commands.registerCommand("zalgo", "Converts text to zalgo format", zalgoArgs) { ctx ->
             val message = ctx.getRequiredString("message").trim()
             val intensity = ctx.getIntOrDefault("intensity", 5) // Default intensity is 5
             CommandResult(zalgoify(message, intensity))
