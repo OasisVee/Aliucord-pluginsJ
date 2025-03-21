@@ -8,7 +8,10 @@ package io.github.juby210.acplugins
 import android.content.Context
 import com.aliucord.annotations.AliucordPlugin
 import com.aliucord.api.CommandsAPI
+import com.aliucord.api.CommandsAPI.CommandResult
 import com.aliucord.entities.Plugin
+import com.discord.api.commands.ApplicationCommandType
+import com.discord.models.commands.ApplicationCommandOption
 import com.lytefast.flexinput.model.Attachment
 import java.util.Random
 
@@ -17,11 +20,11 @@ import java.util.Random
 class MoreSlashCommands : Plugin() {
     override fun start(context: Context?) {
         commands.registerCommand("lenny", "Appends ( ͡° ͜ʖ ͡°) to your message.") { ctx ->
-            CommandsAPI.CommandResult((ctx.getStringOrDefault("message", "") + " ( ͡° ͜ʖ ͡°)"))
+            CommandResult((ctx.getStringOrDefault("message", "") + " ( ͡° ͜ʖ ͡°)"))
         }
 
         commands.registerCommand("mock", "Mock a user") { ctx ->
-            CommandsAPI.CommandResult(
+            CommandResult(
                 ctx.getRequiredString("message")
                     .toCharArray()
                     .mapIndexed { i, c -> if (i % 2 == 1) c.uppercaseChar() else c.lowercaseChar() }
@@ -30,31 +33,43 @@ class MoreSlashCommands : Plugin() {
         }
 
         commands.registerCommand("upper", "Makes text uppercase") { ctx ->
-            CommandsAPI.CommandResult(ctx.getRequiredString("message").trim().uppercase())
+            CommandResult(ctx.getRequiredString("message").trim().uppercase())
         }
 
         commands.registerCommand("lower", "Makes text lowercase") { ctx ->
-            CommandsAPI.CommandResult(ctx.getRequiredString("message").trim().lowercase())
+            CommandResult(ctx.getRequiredString("message").trim().lowercase())
         }
 
         commands.registerCommand("owo", "Owoify's your text") { ctx ->
-            CommandsAPI.CommandResult(owoify(ctx.getRequiredString("message").trim()))
+            CommandResult(owoify(ctx.getRequiredString("message").trim()))
         }
 
-        commands.registerCommand("zalgo", "Converts text to zalgo format", listOf(
-            CommandsAPI.requiredMessageOption,
-            CommandsAPI.Argument("intensity", CommandsAPI.ArgumentType.INT, false)
-        )) { ctx ->
+        val args = listOf(
+            ApplicationCommandOption(
+                ApplicationCommandType.STRING,
+                "message",
+                "The message to convert to zalgo format",
+                required = true
+            ),
+            ApplicationCommandOption(
+                ApplicationCommandType.INTEGER,
+                "intensity",
+                "The intensity of the zalgo effect (default is 5)",
+                required = false
+            )
+        )
+
+        commands.registerCommand("zalgo", "Converts text to zalgo format", args) { ctx ->
             val message = ctx.getRequiredString("message").trim()
             val intensity = ctx.getIntOrDefault("intensity", 5) // Default intensity is 5
-            CommandsAPI.CommandResult(zalgoify(message, intensity))
+            CommandResult(zalgoify(message, intensity))
         }
 
         try {
             val displayName = Attachment::class.java.getDeclaredField("displayName").apply { isAccessible = true }
             commands.registerCommand("spoilerfiles", "Marks attachments as spoilers") { ctx ->
                 for (a in ctx.attachments) displayName[a] = "SPOILER_" + a.displayName
-                CommandsAPI.CommandResult(ctx.getStringOrDefault("message", ""))
+                CommandResult(ctx.getStringOrDefault("message", ""))
             }
         } catch (e: NoSuchFieldException) {
             e.printStackTrace()
@@ -63,7 +78,7 @@ class MoreSlashCommands : Plugin() {
         }
 
         commands.registerCommand("reverse", "Makes text reversed") { ctx ->
-            CommandsAPI.CommandResult(ctx.getRequiredString("message").reversed())
+            CommandResult(ctx.getRequiredString("message").reversed())
         }
     }
 
