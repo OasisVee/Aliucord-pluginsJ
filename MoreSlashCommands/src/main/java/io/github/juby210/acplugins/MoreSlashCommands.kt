@@ -62,7 +62,7 @@ class MoreSlashCommands : Plugin() {
             ApplicationCommandOption(
                 ApplicationCommandType.INTEGER,
                 "intensity",
-                "The intensity of the zalgo effect (default is 1, max is 5)",
+                "The intensity of the zalgo effect (default is 1, max is 5. if over, its set to 1)",
                 null,
                 false,
                 false,
@@ -78,7 +78,7 @@ class MoreSlashCommands : Plugin() {
         commands.registerCommand("zalgo", "Converts text to zalgo format", zalgoArgs) { ctx ->
             val message = ctx.getRequiredString("message").trim()
             var intensity = ctx.getIntOrDefault("intensity", 1) // Default intensity is 1
-            if (intensity > 5) intensity = 5 // Cap intensity at 5
+            if (intensity > 5) intensity = 1 // Cap intensity at 5
             CommandResult(zalgoify(message, intensity))
         }
 
