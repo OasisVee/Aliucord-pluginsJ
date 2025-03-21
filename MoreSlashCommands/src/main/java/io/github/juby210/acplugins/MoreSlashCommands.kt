@@ -3,136 +3,123 @@
  * Licensed under the Open Software License version 3.0
  */
 
-package io.github.juby210.acplugins;
+package io.github.juby210.acplugins
 
-import android.content.Context;
-import com.aliucord.annotations.AliucordPlugin;
-import com.aliucord.api.CommandsAPI;
-import com.aliucord.entities.Plugin;
-import com.lytefast.flexinput.model.Attachment;
-import java.util.Random;
-import java.util.List;
-import java.util.ArrayList;
+import android.content.Context
+import com.aliucord.annotations.AliucordPlugin
+import com.aliucord.api.CommandsAPI
+import com.aliucord.entities.Plugin
+import com.lytefast.flexinput.model.Attachment
+import java.util.Random
 
 @AliucordPlugin
-@SuppressWarnings("unused")
+@Suppress("unused")
 class MoreSlashCommands : Plugin() {
-  @Override
-  public void start(Context context) {
-    commands.registerCommand("lenny", "Appends ( ͡° ͜ʖ ͡°) to your message.", List.of(CommandsAPI.messageOption), ctx ->
-        new CommandsAPI.CommandResult(ctx.getStringOrDefault("message", "") + " ( ͡° ͜ʖ ͡°)")
-    );
-
-    commands.registerCommand("mock", "Mock a user", List.of(CommandsAPI.requiredMessageOption), ctx ->
-        new CommandsAPI.CommandResult(String.valueOf(ctx
-            .getRequiredString("message")
-            .toCharArray())
-            .chars()
-            .mapToObj(i -> (char) i)
-            .mapIndexed((i, c) -> i % 2 == 1 ? Character.toUpperCase(c) : Character.toLowerCase(c))
-            .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
-            .toString())
-    );
-
-    commands.registerCommand("upper", "Makes text uppercase", List.of(CommandsAPI.requiredMessageOption), ctx ->
-        new CommandsAPI.CommandResult(ctx.getRequiredString("message").trim().toUpperCase())
-    );
-
-    commands.registerCommand("lower", "Makes text lowercase", List.of(CommandsAPI.requiredMessageOption), ctx ->
-        new CommandsAPI.CommandResult(ctx.getRequiredString("message").trim().toLowerCase())
-    );
-
-    commands.registerCommand("owo", "Owoify's your text", List.of(CommandsAPI.requiredMessageOption), ctx ->
-        new CommandsAPI.CommandResult(owoify(ctx.getRequiredString("message").trim()))
-    );
-
-    List<CommandsAPI.Argument> zalgoArgs = new ArrayList<>(List.of(CommandsAPI.requiredMessageOption));
-    zalgoArgs.add(new CommandsAPI.Argument("intensity", CommandsAPI.ArgumentType.INT, false));
-    commands.registerCommand("zalgo", "Converts text to zalgo format", zalgoArgs, ctx -> {
-        String message = ctx.getRequiredString("message").trim();
-        int intensity = ctx.getIntOrDefault("intensity", 5); // Default intensity is 5
-        if (intensity < 1) intensity = 1; // Ensure intensity is at least 1
-        if (intensity > 10) intensity = 10; // Limit maximum intensity to 10 (adjust as needed)
-        return new CommandsAPI.CommandResult(zalgoify(message, intensity));
-    });
-
-    try {
-      java.lang.reflect.Field displayName = Attachment.class.java.getDeclaredField("displayName");
-      displayName.setAccessible(true);
-      commands.registerCommand("spoilerfiles", "Marks attachments as spoilers", List.of(CommandsAPI.messageOption), ctx -> {
-        for (Attachment a : ctx.getAttachments()) {
-          displayName.set(a, "SPOILER_" + a.getDisplayName());
+    override fun start(context: Context?) {
+        commands.registerCommand("lenny", "Appends ( ͡° ͜ʖ ͡°) to your message.") { ctx ->
+            CommandsAPI.CommandResult((ctx.getStringOrDefault("message", "") + " ( ͡° ͜ʖ ͡°)"))
         }
-        return new CommandsAPI.CommandResult(ctx.getStringOrDefault("message", ""));
-      });
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      // Handle the exception appropriately, maybe log it
-      e.printStackTrace();
+
+        commands.registerCommand("mock", "Mock a user") { ctx ->
+            CommandsAPI.CommandResult(
+                ctx.getRequiredString("message")
+                    .toCharArray()
+                    .mapIndexed { i, c -> if (i % 2 == 1) c.uppercaseChar() else c.lowercaseChar() }
+                    .joinToString("")
+            )
+        }
+
+        commands.registerCommand("upper", "Makes text uppercase") { ctx ->
+            CommandsAPI.CommandResult(ctx.getRequiredString("message").trim().uppercase())
+        }
+
+        commands.registerCommand("lower", "Makes text lowercase") { ctx ->
+            CommandsAPI.CommandResult(ctx.getRequiredString("message").trim().lowercase())
+        }
+
+        commands.registerCommand("owo", "Owoify's your text") { ctx ->
+            CommandsAPI.CommandResult(owoify(ctx.getRequiredString("message").trim()))
+        }
+
+        commands.registerCommand("zalgo", "Converts text to zalgo format", listOf(
+            CommandsAPI.requiredMessageOption,
+            CommandsAPI.Argument("intensity", CommandsAPI.ArgumentType.INT, false)
+        )) { ctx ->
+            val message = ctx.getRequiredString("message").trim()
+            val intensity = ctx.getIntOrDefault("intensity", 5) // Default intensity is 5
+            CommandsAPI.CommandResult(zalgoify(message, intensity))
+        }
+
+        try {
+            val displayName = Attachment::class.java.getDeclaredField("displayName").apply { isAccessible = true }
+            commands.registerCommand("spoilerfiles", "Marks attachments as spoilers") { ctx ->
+                for (a in ctx.attachments) displayName[a] = "SPOILER_" + a.displayName
+                CommandsAPI.CommandResult(ctx.getStringOrDefault("message", ""))
+            }
+        } catch (e: NoSuchFieldException) {
+            e.printStackTrace()
+        } catch (e: IllegalAccessException) {
+            e.printStackTrace()
+        }
+
+        commands.registerCommand("reverse", "Makes text reversed") { ctx ->
+            CommandsAPI.CommandResult(ctx.getRequiredString("message").reversed())
+        }
     }
 
+    override fun stop(context: Context?) = commands.unregisterAll()
 
-    commands.registerCommand("reverse", "Makes text reversed", List.of(CommandsAPI.requiredMessageOption), ctx ->
-        new CommandsAPI.CommandResult(new StringBuilder(ctx.getRequiredString("message")).reverse().toString())
-    );
-  }
-
-  @Override
-  public void stop(Context context) {
-    commands.unregisterAll();
-  }
-
-  private String owoify(String text) {
-    return text.replace("l", "w").replace("L", "W")
-        .replace("r", "w").replace("R", "W")
-        .replace("o", "u").replace("O", "U");
-  }
-
-  private final Random random = new Random();
-
-  private String zalgoify(String text, int intensity) {
-    StringBuilder result = new StringBuilder();
-    int maxAbove = 8 * intensity;
-    int maxMiddle = 3 * intensity;
-    int maxBelow = 8 * intensity;
-
-    for (char charCode : text.toCharArray()) {
-      result.append(charCode);
-
-      // Add random number of combining characters above
-      int numAbove = random.nextInt(maxAbove) + 1;
-      for (int i = 0; i < numAbove; i++) {
-        result.append(COMBINING_CHARS_ABOVE[random.nextInt(COMBINING_CHARS_ABOVE.length)]);
-      }
-
-      // Add random number of combining characters middle
-      int numMiddle = random.nextInt(maxMiddle);
-      for (int i = 0; i < numMiddle; i++) {
-        result.append(COMBINING_CHARS_MIDDLE[random.nextInt(COMBINING_CHARS_MIDDLE.length)]);
-      }
-
-      // Add random number of combining characters below
-      int numBelow = random.nextInt(maxBelow) + 1;
-      for (int i = 0; i < numBelow; i++) {
-        result.append(COMBINING_CHARS_BELOW[random.nextInt(COMBINING_CHARS_BELOW.length)]);
-      }
+    private fun owoify(text: String): String {
+        return text.replace("l", "w", true).replace("r", "w", true)
+            .replace("o", "u", true)
     }
 
-    return result.toString();
-  }
+    private val random = Random()
 
-  // Unicode combining characters for zalgo text
-  private static final charCOMBINING_CHARS_ABOVE = new char{
-      '\u0300', '\u0301', '\u0302', '\u0303', '\u0304', '\u0305', '\u0306', '\u0307',
-      '\u0308', '\u0309', '\u030A', '\u030B', '\u030C', '\u030D', '\u030E', '\u030F'
-  };
+    private fun zalgoify(text: String, intensity: Int): String {
+        val result = StringBuilder()
+        val maxAbove = 8 * intensity
+        val maxMiddle = 3 * intensity
+        val maxBelow = 8 * intensity
 
-  private static final charCOMBINING_CHARS_MIDDLE = new char{
-      '\u0310', '\u0311', '\u0312', '\u0313', '\u0314', '\u0315', '\u0316', '\u0317',
-      '\u0318', '\u0319', '\u031A', '\u031B', '\u031C', '\u031D', '\u031E', '\u031F'
-  };
+        for (char in text) {
+            result.append(char)
 
-  private static final charCOMBINING_CHARS_BELOW = new char{
-      '\u0320', '\u0321', '\u0322', '\u0323', '\u0324', '\u0325', '\u0326', '\u0327',
-      '\u0328', '\u0329', '\u032A', '\u032B', '\u032C', '\u032D', '\u032E', '\u032F'
-  };
+            // Add random number of combining characters above
+            val numAbove = random.nextInt(maxAbove) + 1
+            for (i in 0 until numAbove) {
+                result.append(COMBINING_CHARS_ABOVE[random.nextInt(COMBINING_CHARS_ABOVE.size)])
+            }
+
+            // Add random number of combining characters middle
+            val numMiddle = random.nextInt(maxMiddle)
+            for (i in 0 until numMiddle) {
+                result.append(COMBINING_CHARS_MIDDLE[random.nextInt(COMBINING_CHARS_MIDDLE.size)])
+            }
+
+            // Add random number of combining characters below
+            val numBelow = random.nextInt(maxBelow) + 1
+            for (i in 0 until numBelow) {
+                result.append(COMBINING_CHARS_BELOW[random.nextInt(COMBINING_CHARS_BELOW.size)])
+            }
+        }
+
+        return result.toString()
+    }
+
+    // Unicode combining characters for zalgo text
+    private val COMBINING_CHARS_ABOVE = charArrayOf(
+        '\u0300', '\u0301', '\u0302', '\u0303', '\u0304', '\u0305', '\u0306', '\u0307',
+        '\u0308', '\u0309', '\u030A', '\u030B', '\u030C', '\u030D', '\u030E', '\u030F'
+    )
+
+    private val COMBINING_CHARS_MIDDLE = charArrayOf(
+        '\u0310', '\u0311', '\u0312', '\u0313', '\u0314', '\u0315', '\u0316', '\u0317',
+        '\u0318', '\u0319', '\u031A', '\u031B', '\u031C', '\u031D', '\u031E', '\u031F'
+    )
+
+    private val COMBINING_CHARS_BELOW = charArrayOf(
+        '\u0320', '\u0321', '\u0322', '\u0323', '\u0324', '\u0325', '\u0326', '\u0327',
+        '\u0328', '\u0329', '\u032A', '\u032B', '\u032C', '\u032D', '\u032E', '\u032F'
+    )
 }
