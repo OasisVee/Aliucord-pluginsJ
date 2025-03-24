@@ -14,7 +14,7 @@ public final class Constants {
 
     public static class Endpoints {
         // Updated API endpoint to v3
-        public static String LOOKUP_BULK(Object[] ids) { return WEBSITE + "/api/v3/lookup-bulk?platform=discord&ids=" + TextUtils.join(",", ids); }
+        public static String LOOKUP_BULK(Object[] ids) { return WEBSITE + "/api/v2/lookup?platform=discord&ids=" + TextUtils.join(",", ids); }
     }
 
     private static final Map<String, List<String>> pronouns = new HashMap<>() {{
