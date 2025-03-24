@@ -93,7 +93,10 @@ public final class PronounDB extends Plugin {
                     var finalPronounsView = pronounsView;
                     new Thread(() -> {
                         Store.fetchPronouns(userId);
-                        new Handler(Looper.getMainLooper()).post(() -> addPronounsToHeader(finalPronounsView, userId, false));
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            addPronounsToHeader(finalPronounsView, userId, false);
+                            Main.logger.info("Pronouns added to header for user " + userId);
+                        });
                     }).start();
                 } else addPronounsToHeader(pronounsView, userId, bot);
             } catch (Throwable e) { Main.logger.error(e); }
@@ -110,7 +113,10 @@ public final class PronounDB extends Plugin {
             var binding = WidgetUserSheet.access$getBinding$p((WidgetUserSheet) param.thisObject);
             if (!Store.cache.containsKey(userId)) new Thread(() -> {
                 Store.fetchPronouns(userId);
-                new Handler(Looper.getMainLooper()).post(() -> addPronounsToUserSheet(binding, userId));
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    addPronounsToUserSheet(binding, userId);
+                    Main.logger.info("Pronouns added to user sheet for user " + userId);
+                });
             }).start(); else addPronounsToUserSheet(binding, userId);
         }));
     }
@@ -123,6 +129,7 @@ public final class PronounDB extends Plugin {
         }
         pronounsView.setVisibility(View.VISIBLE);
         pronounsView.setText(" • " + Constants.getPronouns(c, settings.getInt("format", 0)));
+        Main.logger.info("Pronouns for user " + userId + ": " + pronounsView.getText());
     }
 
     private static final int noteHeaderId = Utils.getResId("user_sheet_note_header", "id");
@@ -143,6 +150,7 @@ public final class PronounDB extends Plugin {
             layout.addView(pronounsView, layout.indexOfChild(noteHeader));
         }
         pronounsView.setText("Pronouns • " + Constants.getPronouns(c, settings.getInt("format", 0)));
+        Main.logger.info("Pronouns for user " + userId + ": " + pronounsView.getText());
     }
 
     public final int viewId = View.generateViewId();
