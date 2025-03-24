@@ -70,6 +70,7 @@ subprojects {
 
         discord("com.discord:discord:126021")
         compileOnly("com.aliucord:Aliucord:main-SNAPSHOT")
+        compileOnly("com.google.code.gson:gson:2.8.8")  // Added Gson dependency
     }
 }
 
