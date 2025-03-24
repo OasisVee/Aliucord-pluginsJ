@@ -7,8 +7,6 @@ package io.github.juby210.acplugins.pronoundb;
 
 import com.aliucord.Http;
 import com.aliucord.Main;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
@@ -17,10 +15,9 @@ import java.util.*;
 public final class Store {
     public static Map<Long, String> cache = new HashMap<>();
 
-    private static final Type resType = new TypeToken<Map<Long, JsonObject>>() {}.getType(); // Change from String to JsonObject
+    private static final Type resType = TypeToken.getParameterized(Map.class, Long.class, String.class).getType();
     private static final List<Long> buffer = new ArrayList<>();
     private static Thread timerThread = new Thread(Store::runThread);
-
     public static void fetchPronouns(Long id) {
         var state = timerThread.getState();
         if (!timerThread.isAlive() && state != Thread.State.RUNNABLE) {
@@ -42,21 +39,11 @@ public final class Store {
             Thread.sleep(50);
             var bufferCopy = buffer.toArray(new Long[0]);
             buffer.clear();
-            Map<Long, JsonObject> res = Http.simpleJsonGet(Constants.Endpoints.LOOKUP_BULK(bufferCopy), resType); // Change from String to JsonObject
-            for (var entry : res.entrySet()) {
-                var id = entry.getKey();
-                var value = entry.getValue();
-                if (value.has("pronouns")) { // Ensure JsonObject is correctly used
-                    cache.put(id, value.get("pronouns").getAsString()); // Ensure JsonObject is correctly used
-                } else {
-                    cache.put(id, "unspecified");
-                }
-            }
+            Map<Long, String> res = Http.simpleJsonGet(Constants.Endpoints.LOOKUP(bufferCopy), resType);
+            cache.putAll(res);
             for (var id : bufferCopy) {
                 if (!cache.containsKey(id)) cache.put(id, "unspecified");
             }
-        } catch (JsonSyntaxException e) {
-            Main.logger.error("PronounDB JSON syntax error", e);
         } catch (Throwable e) {
             Main.logger.error("PronounDB error", e);
         }
