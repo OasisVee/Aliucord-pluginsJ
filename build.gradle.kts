@@ -70,8 +70,6 @@ subprojects {
 
         discord("com.discord:discord:126021")
         compileOnly("com.aliucord:Aliucord:main-SNAPSHOT")
-        compileOnly("com.discord:discord-api:0.0.1")  // Add this line for Discord API
-        compileOnly("com.discord:discord-stores:0.0.1")  // Add this line for Discord StoreStream
     }
 }
 
