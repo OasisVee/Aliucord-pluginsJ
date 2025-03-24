@@ -45,10 +45,21 @@ public final class PronounDB extends Plugin {
 
     @Override
     public void start(Context context) {
-        if (settings.getBool("displayChat", true)) try {
-            injectMessages();
-        } catch (Throwable e) { Main.logger.error(e); }
-        if (settings.getBool("displayProfile", true)) injectProfile();
+        if (settings.getBool("displayChat", true)) {
+            try {
+                injectMessages();
+            } catch (Throwable e) { 
+                Main.logger.error("PronounDB failed to inject into messages", e); 
+            }
+        }
+        
+        if (settings.getBool("displayProfile", true)) {
+            try {
+                injectProfile();
+            } catch (Throwable e) {
+                Main.logger.error("PronounDB failed to inject into profile", e);
+            }
+        }
     }
 
     @Override
@@ -62,56 +73,116 @@ public final class PronounDB extends Plugin {
 
         patcher.patch(WidgetChatListAdapterItemMessage.class, "onConfigure", new Class<?>[]{ int.class, ChatListEntry.class }, new Hook(param -> {
             try {
+                // Make sure we have a MessageEntry
+                if (!(param.args[1] instanceof MessageEntry)) return;
+                var messageEntry = (MessageEntry) param.args[1];
+                var message = messageEntry.getMessage();
+                if (message == null) return;
+                
+                // Get the timestamp view
                 var itemTimestamp = (TextView) itemTimestampField.get(param.thisObject);
                 if (itemTimestamp == null) return;
 
                 var header = (ConstraintLayout) itemTimestamp.getParent();
+                if (header == null) return;
+                
                 TextView pronounsView = header.findViewById(viewId);
                 if (pronounsView == null) {
+                    // Create the pronouns view
                     pronounsView = new TextView(header.getContext(), null, 0, R.i.UiKit_TextView);
                     pronounsView.setId(viewId);
                     pronounsView.setTextSize(12);
                     pronounsView.setTextColor(ColorCompat.getThemedColor(header.getContext(), R.b.colorTextMuted));
                     header.addView(pronounsView);
 
+                    // Set up constraints
                     var set = new ConstraintSet();
                     set.clone(header);
                     set.constrainedHeight(viewId, true);
-                    set.connect(viewId, ConstraintSet.BASELINE, Utils.getResId("chat_list_adapter_item_text_name", "id"), ConstraintSet.BASELINE);
+                    
+                    // Find the username view ID
+                    int nameId = Utils.getResId("chat_list_adapter_item_text_name", "id");
+                    
+                    // Connect to baseline of username
+                    set.connect(viewId, ConstraintSet.BASELINE, nameId, ConstraintSet.BASELINE);
+                    // Position after timestamp
                     set.connect(viewId, ConstraintSet.START, itemTimestamp.getId(), ConstraintSet.END);
                     set.connect(viewId, ConstraintSet.END, header.getId(), ConstraintSet.END);
-                    set.connect(itemTimestamp.getId(), ConstraintSet.END, viewId, ConstraintSet.END);
+                    // Make sure timestamp connects to our view
+                    set.connect(itemTimestamp.getId(), ConstraintSet.END, viewId, ConstraintSet.START);
+                    
+                    // Apply constraints
                     set.applyTo(header);
                 }
 
-                var message = ((MessageEntry) param.args[1]).getMessage();
-                if (message == null) return;
+                // Get user info
                 var user = new CoreUser(message.getAuthor());
                 var bot = user.isBot();
                 Long userId = user.getId();
+                
+                // Skip bots or already cached users
                 if (!bot && !Store.cache.containsKey(userId)) {
+                    // Fetch pronouns asynchronously
                     var finalPronounsView = pronounsView;
                     new Thread(() -> {
                         Store.fetchPronouns(userId);
-                        new Handler(Looper.getMainLooper()).post(() -> addPronounsToHeader(finalPronounsView, userId, false));
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            try {
+                                addPronounsToHeader(finalPronounsView, userId, false);
+                            } catch (Throwable e) {
+                                Main.logger.error("Failed to add pronouns to chat header", e);
+                            }
+                        });
                     }).start();
-                } else addPronounsToHeader(pronounsView, userId, bot);
-            } catch (Throwable e) { Main.logger.error(e); }
+                } else {
+                    try {
+                        addPronounsToHeader(pronounsView, userId, bot);
+                    } catch (Throwable e) {
+                        Main.logger.error("Failed to add pronouns to chat header", e);
+                    }
+                }
+            } catch (Throwable e) { 
+                Main.logger.error("Error in onConfigure hook", e); 
+            }
         }));
     }
 
     private void injectProfile() {
         patcher.patch(WidgetUserSheet.class, "configureNote", new Class<?>[]{ WidgetUserSheetViewModel.ViewState.Loaded.class }, new Hook(param -> {
-            var state = (WidgetUserSheetViewModel.ViewState.Loaded) param.args[0];
-            var user = state.getUser();
-            if (user == null || user.isBot()) return;
-            Long userId = user.getId();
-
-            var binding = WidgetUserSheet.access$getBinding$p((WidgetUserSheet) param.thisObject);
-            if (!Store.cache.containsKey(userId)) new Thread(() -> {
-                Store.fetchPronouns(userId);
-                new Handler(Looper.getMainLooper()).post(() -> addPronounsToUserSheet(binding, userId));
-            }).start(); else addPronounsToUserSheet(binding, userId);
+            try {
+                var state = (WidgetUserSheetViewModel.ViewState.Loaded) param.args[0];
+                var user = state.getUser();
+                if (user == null || user.isBot()) return;
+                
+                Long userId = user.getId();
+                var sheet = (WidgetUserSheet) param.thisObject;
+                
+                // Get binding safely
+                var binding = WidgetUserSheet.access$getBinding$p(sheet);
+                if (binding == null || binding.a == null) return;
+                
+                if (!Store.cache.containsKey(userId)) {
+                    // Fetch pronouns asynchronously
+                    new Thread(() -> {
+                        Store.fetchPronouns(userId);
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            try {
+                                addPronounsToUserSheet(binding, userId);
+                            } catch (Throwable e) {
+                                Main.logger.error("Failed to add pronouns to user sheet", e);
+                            }
+                        });
+                    }).start();
+                } else {
+                    try {
+                        addPronounsToUserSheet(binding, userId);
+                    } catch (Throwable e) {
+                        Main.logger.error("Failed to add pronouns to user sheet", e);
+                    }
+                }
+            } catch (Throwable e) {
+                Main.logger.error("Error in configureNote hook", e);
+            }
         }));
     }
 
@@ -121,28 +192,56 @@ public final class PronounDB extends Plugin {
             pronounsView.setVisibility(View.GONE);
             return;
         }
+        
+        // Get pronouns string with proper format
+        String pronounsText = Constants.getPronouns(c, settings.getInt("format", 0));
+        if (pronounsText == null) {
+            pronounsView.setVisibility(View.GONE);
+            return;
+        }
+        
         pronounsView.setVisibility(View.VISIBLE);
-        pronounsView.setText(" • " + Constants.getPronouns(c, settings.getInt("format", 0)));
+        pronounsView.setText(" • " + pronounsText);
     }
 
     private static final int noteHeaderId = Utils.getResId("user_sheet_note_header", "id");
 
     public void addPronounsToUserSheet(WidgetUserSheetBinding binding, Long userId) {
-        var c = Store.cache.get(userId);
+        String c = Store.cache.get(userId);
         if (c == null || c.equals("unspecified")) return;
+        
+        // Get pronouns string with proper format
+        String pronounsText = Constants.getPronouns(c, settings.getInt("format", 0));
+        if (pronounsText == null) return;
+        
+        try {
+            var noteHeader = binding.a.findViewById(noteHeaderId);
+            if (noteHeader == null) return;
+            
+            var layout = (LinearLayout) noteHeader.getParent();
+            if (layout == null) return;
 
-        var noteHeader = binding.a.findViewById(noteHeaderId);
-        var layout = (LinearLayout) noteHeader.getParent();
-
-        TextView pronounsView = layout.findViewById(viewId);
-        if (pronounsView == null) {
-            pronounsView = new TextView(layout.getContext(), null, 0, R.i.UserProfile_Section_Header);
-            pronounsView.setId(viewId);
-            pronounsView.setTypeface(ResourcesCompat.getFont(layout.getContext(), com.aliucord.Constants.Fonts.whitney_semibold));
-            pronounsView.setPadding(DimenUtils.dpToPx(16), 0, 0, 0);
-            layout.addView(pronounsView, layout.indexOfChild(noteHeader));
+            TextView pronounsView = layout.findViewById(viewId);
+            if (pronounsView == null) {
+                pronounsView = new TextView(layout.getContext(), null, 0, R.i.UserProfile_Section_Header);
+                pronounsView.setId(viewId);
+                pronounsView.setTypeface(ResourcesCompat.getFont(layout.getContext(), com.aliucord.Constants.Fonts.whitney_semibold));
+                pronounsView.setPadding(DimenUtils.dpToPx(16), 0, 0, 0);
+                
+                // Insert before note header
+                int index = layout.indexOfChild(noteHeader);
+                if (index >= 0) {
+                    layout.addView(pronounsView, index);
+                } else {
+                    layout.addView(pronounsView);
+                }
+            }
+            
+            pronounsView.setText("Pronouns • " + pronounsText);
+            pronounsView.setVisibility(View.VISIBLE);
+        } catch (Throwable e) {
+            Main.logger.error("Error adding pronouns to user sheet", e);
         }
-        pronounsView.setText("Pronouns • " + Constants.getPronouns(c, settings.getInt("format", 0)));
     }
 
     public final int viewId = View.generateViewId();
