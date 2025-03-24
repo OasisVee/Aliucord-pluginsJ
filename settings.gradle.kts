@@ -1,6 +1,6 @@
 include(":BetterCodeBlocks")
 include(":BetterStatusIndicators")
-include(":CustomNicknameFormat")
+//include(":CustomNicknameFormat")
 include(":CustomTimestamps")
 include(":Experiments")
 //include(":Inbox")
