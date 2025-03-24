@@ -46,8 +46,8 @@ public final class Store {
             for (var entry : res.entrySet()) {
                 var id = entry.getKey();
                 var value = entry.getValue();
-                if (value.has("pronouns")) {
-                    cache.put(id, value.get("pronouns").getAsString());
+                if (value.has("pronouns")) { // Ensure JsonObject is correctly used
+                    cache.put(id, value.get("pronouns").getAsString()); // Ensure JsonObject is correctly used
                 } else {
                     cache.put(id, "unspecified");
                 }
