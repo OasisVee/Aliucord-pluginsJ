@@ -1,7 +1,12 @@
-version = "1.1.5"
+version = "1.1.6"
 description = "Saves deleted / edited messages to a SQLite database and restores them when the channel is opened."
-
+aliucord.author("._.serinova._.", 967152107922792478L)
 aliucord.changelog.set("""
+    1.1.6
+    ======================
+    
+    * added a delete both logs button
+    
     1.1.5
     ======================
 

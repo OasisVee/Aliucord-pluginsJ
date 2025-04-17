@@ -36,8 +36,8 @@ subprojects {
 
     aliucord {
         author("Juby210", 324622488644616195L)
-        updateUrl.set("https://raw.githubusercontent.com/Juby210/Aliucord-plugins/builds/updater.json")
-        buildUrl.set("https://raw.githubusercontent.com/Juby210/Aliucord-plugins/builds/%s.zip")
+        updateUrl.set("https://raw.githubusercontent.com/OasisVee/Aliucord-pluginsJ/builds/updater.json")
+        buildUrl.set("https://raw.githubusercontent.com/OasisVee/Aliucord-pluginsJ/builds/%s.zip")
     }
 
     android {
